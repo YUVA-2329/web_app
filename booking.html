@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPL Ticket Booking 2026</title>
     <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
 </head>
 
 <body>
@@ -107,6 +108,7 @@
                             name="tickets"
                             min="1"
                             max="10"
+                            step="1"
                             value="1"
                             required>
                     </div>
@@ -156,19 +158,44 @@
 
             </section>
 
+            <!-- Live Booking Summary -->
             <aside class="summary" aria-live="polite">
 
-                <h2>Booking Information</h2>
+                <h2>Booking Summary</h2>
 
-                <p>Selected Match: <strong>IPL 2026</strong></p>
+                <p>Selected Match:
+                    <strong id="summaryMatch">Not Selected</strong>
+                </p>
 
-                <p>Stand Categories: <strong>General / Premium / VIP</strong></p>
+                <p>Match Date:
+                    <strong id="summaryDate">—</strong>
+                </p>
 
-                <p>Available Tickets: <strong>1 - 10</strong></p>
+                <p>Venue:
+                    <strong id="summaryVenue">—</strong>
+                </p>
 
-                <p>Phone Verification: <strong>10 Digits Required</strong></p>
+                <p>Stand Category:
+                    <strong id="summaryStand">Not Selected</strong>
+                </p>
 
-                <p>Booking Status: <strong>Pending Submission</strong></p>
+                <p>Price per Ticket:
+                    ₹<strong id="summaryPrice">—</strong>
+                </p>
+
+                <p>Ticket Quantity:
+                    <strong id="summaryQuantity">1</strong>
+                </p>
+
+                <hr>
+
+                <h3>Total Amount:
+                    ₹<strong id="summaryTotal">—</strong>
+                </h3>
+
+                <p>Booking Status:
+                    <strong>Pending Submission</strong>
+                </p>
 
             </aside>
 

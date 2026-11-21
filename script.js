@@ -2,8 +2,10 @@
 // IPL TICKET BOOKING 2026 - JAVASCRIPT
 // ============================================
 
+
 // Match Information
 const matches = {
+
     "01": {
         name: "CSK vs MI",
         date: "10 Apr 2026",
@@ -47,14 +49,62 @@ const matches = {
             VIP: 7000
         }
     }
+
 };
 
 
 // ============================================
-// 1. MATCH FILTERING
+// 1. REUSABLE TOAST NOTIFICATION
+// ============================================
+
+function showToast(message) {
+
+    let toast = document.getElementById("toast");
+
+    if (!toast) {
+
+        toast = document.createElement("div");
+        toast.id = "toast";
+
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #222;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 9999;
+            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        `;
+
+        document.body.appendChild(toast);
+
+    }
+
+    toast.textContent = message;
+    toast.style.opacity = "1";
+
+    clearTimeout(toast.hideTimer);
+
+    toast.hideTimer = setTimeout(() => {
+
+        toast.style.opacity = "0";
+
+    }, 3000);
+
+}
+
+
+// ============================================
+// 2. MATCH FILTERING
 // ============================================
 
 const teamFilter = document.getElementById("team");
+
 const matchTable = document.getElementById("matchTable");
 
 if (teamFilter && matchTable) {
@@ -73,9 +123,13 @@ if (teamFilter && matchTable) {
                 selectedTeam === "all" ||
                 teams.split(" ").includes(selectedTeam)
             ) {
+
                 row.style.display = "";
+
             } else {
+
                 row.style.display = "none";
+
             }
 
         });
@@ -86,7 +140,7 @@ if (teamFilter && matchTable) {
 
 
 // ============================================
-// 2. BOOK BUTTON - REDIRECT TO BOOKING PAGE
+// 3. BOOK BUTTON - REDIRECT TO BOOKING PAGE
 // ============================================
 
 document.querySelectorAll(".book-btn").forEach(button => {
@@ -95,8 +149,24 @@ document.querySelectorAll(".book-btn").forEach(button => {
 
         const matchId = this.dataset.match;
 
-        window.location.href =
-            "booking.html?match=" + encodeURIComponent(matchId);
+        console.log("Book button clicked:", matchId);
+
+        if (!matches[matchId]) {
+
+            showToast("Invalid match selected!");
+
+            return;
+
+        }
+
+        showToast("Redirecting to booking page...");
+
+        setTimeout(() => {
+
+            window.location.href =
+                "booking.html?match=" + encodeURIComponent(matchId);
+
+        }, 500);
 
     });
 
@@ -104,7 +174,7 @@ document.querySelectorAll(".book-btn").forEach(button => {
 
 
 // ============================================
-// 3. LOAD SELECTED MATCH
+// 4. LOAD SELECTED MATCH
 // ============================================
 
 const bookingForm = document.getElementById("bookingForm");
@@ -121,95 +191,238 @@ if (bookingForm && matchSelect) {
 
         matchSelect.value = selectedMatch;
 
+        updateBookingSummary();
+
+        setTimeout(() => {
+
+            bookingForm.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+            showToast("Match selected successfully!");
+
+        }, 300);
+
     }
 
 }
 
 
 // ============================================
-// 4. BOOKING SUMMARY
+// 5. BOOKING SUMMARY - LIVE UPDATE
 // ============================================
 
-function updateBookingSummary() {
+function updateBookingSummary(showNotification = false) {
 
     if (!bookingForm) return;
 
-    const matchId = document.getElementById("match")?.value;
 
-    const stand = document.getElementById("stand")?.value;
+    // Read selected values using DOM selectors.
 
-    const quantity =
-        Number(document.getElementById("tickets")?.value) || 0;
+    const matchId = document.getElementById("match")?.value || "";
+
+    const stand = document.getElementById("stand")?.value || "";
+
+    const quantityInput = document.getElementById("tickets");
+
+    const quantity = Number(quantityInput?.value);
+
+
+    // Get match details.
 
     const match = matches[matchId];
 
-    const price =
-        match && stand ? match.prices[stand] : 0;
+    const price = match && stand ? match.prices[stand] : 0;
 
-    const total = price * quantity;
+
+    // Select Booking Summary elements.
 
     const summaryMatch = document.getElementById("summaryMatch");
+
     const summaryStand = document.getElementById("summaryStand");
+
     const summaryPrice = document.getElementById("summaryPrice");
+
     const summaryQuantity = document.getElementById("summaryQuantity");
+
     const summaryTotal = document.getElementById("summaryTotal");
 
+    const summaryDate = document.getElementById("summaryDate");
+
+    const summaryVenue = document.getElementById("summaryVenue");
+
+
+    // Validate quantity.
+
+    const validQuantity =
+        Number.isInteger(quantity) && quantity >= 1 && quantity <= 10;
+
+
+    // Update selected match.
+
     if (summaryMatch) {
+
         summaryMatch.textContent = match ? match.name : "Not Selected";
+
     }
+
+
+    // Update stand.
 
     if (summaryStand) {
+
         summaryStand.textContent = stand || "Not Selected";
+
     }
+
+
+    // Update ticket price.
 
     if (summaryPrice) {
-        summaryPrice.textContent = price ? price.toLocaleString("en-IN") : "—";
+
+        summaryPrice.textContent = price
+            ? price.toLocaleString("en-IN")
+            : "—";
+
     }
+
+
+    // Update quantity.
 
     if (summaryQuantity) {
-        summaryQuantity.textContent = quantity;
+
+        summaryQuantity.textContent = validQuantity ? quantity : "—";
+
     }
 
+
+    // Calculate total price.
+
     if (summaryTotal) {
-        summaryTotal.textContent = total
+
+        const total = validQuantity ? price * quantity : 0;
+
+        summaryTotal.textContent = price && validQuantity
             ? total.toLocaleString("en-IN")
             : "—";
+
+    }
+
+
+    // Update match date.
+
+    if (summaryDate) {
+
+        summaryDate.textContent = match ? match.date : "—";
+
+    }
+
+
+    // Update venue.
+
+    if (summaryVenue) {
+
+        summaryVenue.textContent = match ? match.venue : "—";
+
+    }
+
+
+    // Show toast notification.
+
+    if (showNotification) {
+
+        if (!validQuantity) {
+
+            showToast("Please select between 1 and 10 tickets.");
+
+        } else if (match && stand) {
+
+            showToast("Booking summary updated successfully!");
+
+        }
+
     }
 
 }
 
 
-// Update summary whenever booking details change.
+// ============================================
+// 6. EVENT LISTENERS FOR LIVE INTERACTION
+// ============================================
 
 if (bookingForm) {
 
-    ["match", "stand", "tickets"].forEach(id => {
+    // Match and Stand dropdown events.
+
+    ["match", "stand"].forEach(id => {
 
         const field = document.getElementById(id);
 
         if (field) {
-            field.addEventListener("change", updateBookingSummary);
-            field.addEventListener("input", updateBookingSummary);
+
+            field.addEventListener("change", () => {
+
+                updateBookingSummary(true);
+
+            });
+
         }
 
     });
 
-    updateBookingSummary();
+
+    // Ticket quantity event.
+
+    const ticketInput = document.getElementById("tickets");
+
+    if (ticketInput) {
+
+        ticketInput.addEventListener("input", () => {
+
+            updateBookingSummary(false);
+
+        });
+
+
+        ticketInput.addEventListener("change", () => {
+
+            updateBookingSummary(true);
+
+        });
+
+    }
+
+
+    // Initial summary update.
+
+    updateBookingSummary(false);
 
 }
 
 
 // ============================================
-// 5. SAVE BOOKING DETAILS
+// 7. SAVE BOOKING DETAILS
 // ============================================
 
 function getBookings() {
 
-    return JSON.parse(
-        localStorage.getItem("iplBookings") || "[]"
-    );
+    try {
+
+        return JSON.parse(
+            localStorage.getItem("iplBookings") || "[]"
+        );
+
+    } catch (error) {
+
+        console.error("Unable to load bookings:", error);
+
+        return [];
+
+    }
 
 }
+
 
 function saveBooking(booking) {
 
@@ -226,7 +439,7 @@ function saveBooking(booking) {
 
 
 // ============================================
-// 6. FORM SUBMISSION AND VALIDATION
+// 8. FORM SUBMISSION AND VALIDATION
 // ============================================
 
 if (bookingForm) {
@@ -235,9 +448,13 @@ if (bookingForm) {
 
         event.preventDefault();
 
+
         if (!bookingForm.reportValidity()) {
+
             return;
+
         }
+
 
         const name = document.getElementById("name").value.trim();
 
@@ -253,16 +470,38 @@ if (bookingForm) {
             document.getElementById("tickets").value
         );
 
+
         const match = matches[matchId];
 
+
         if (!match) {
-            alert("Please select a valid match.");
+
+            showToast("Please select a valid match!");
+
             return;
+
         }
+
 
         const price = match.prices[stand];
 
+
+        if (
+            !price ||
+            !Number.isInteger(quantity) ||
+            quantity < 1 ||
+            quantity > 10
+        ) {
+
+            showToast("Please select valid booking details!");
+
+            return;
+
+        }
+
+
         const total = price * quantity;
+
 
         const booking = {
 
@@ -299,7 +538,24 @@ if (bookingForm) {
 
         };
 
-        saveBooking(booking);
+
+        try {
+
+            saveBooking(booking);
+
+        } catch (error) {
+
+            console.error("Booking save failed:", error);
+
+            showToast("Unable to save booking!");
+
+            return;
+
+        }
+
+
+        showToast("Booking Successful!");
+
 
         alert(
             "Booking Successful!\n\n" +
@@ -308,6 +564,7 @@ if (bookingForm) {
             "Tickets: " + quantity + "\n" +
             "Total Amount: ₹" + total.toLocaleString("en-IN")
         );
+
 
         bookingForm.reset();
 
@@ -319,7 +576,7 @@ if (bookingForm) {
 
 
 // ============================================
-// 7. DISPLAY MY BOOKINGS ON INDEX PAGE
+// 9. DISPLAY MY BOOKINGS ON INDEX PAGE
 // ============================================
 
 function displayBookings() {
@@ -327,11 +584,14 @@ function displayBookings() {
     const bookingsTable =
         document.getElementById("myBookingsTable");
 
+
     if (!bookingsTable) return;
+
 
     const bookings = getBookings();
 
     bookingsTable.innerHTML = "";
+
 
     if (bookings.length === 0) {
 
@@ -345,16 +605,24 @@ function displayBookings() {
 
     }
 
+
     bookings.forEach(booking => {
 
         const row = document.createElement("tr");
 
+
         [
+
             booking.match,
+
             booking.date + " - " + booking.venue,
+
             booking.stand,
+
             booking.tickets,
+
             "₹" + booking.total.toLocaleString("en-IN")
+
         ].forEach(value => {
 
             const cell = document.createElement("td");
@@ -365,6 +633,7 @@ function displayBookings() {
 
         });
 
+
         bookingsTable.appendChild(row);
 
     });
@@ -373,7 +642,7 @@ function displayBookings() {
 
 
 // ============================================
-// 8. INITIALIZE WEBSITE
+// 10. INITIALIZE WEBSITE
 // ============================================
 
 document.addEventListener("DOMContentLoaded", function () {
