@@ -287,3 +287,160 @@ footer {
         width: 100%;
     }
 }
+/* Navigation using Flexbox */
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 5%;
+    background: #111;
+    color: white;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.nav-links {
+    display: flex;
+    gap: 25px;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+}
+
+.hamburger {
+    display: none;
+    font-size: 25px;
+    background: none;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+/* Match cards using CSS Grid */
+
+.match-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin: 25px 0;
+}
+
+.match-card {
+    padding: 25px;
+    background: #f2f2f2;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+}
+
+.match-card h3 {
+    color: #e63946;
+}
+
+/* Grid and List Views */
+
+.match-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+.match-grid.list-view .match-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Guidelines using CSS Grid */
+
+.guidelines-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.guideline-card {
+    padding: 25px;
+    background: #f2f2f2;
+    border-radius: 12px;
+}
+
+/* Controls */
+
+.match-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.match-controls button,
+.match-controls select {
+    padding: 10px 15px;
+    cursor: pointer;
+}
+
+/* Tablet layout */
+
+@media (max-width: 768px) {
+
+    .match-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .guidelines-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hamburger {
+        display: block;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 65px;
+        left: 0;
+        width: 100%;
+        padding: 20px;
+        background: #111;
+        z-index: 100;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+
+}
+
+/* Mobile layout */
+
+@media (max-width: 480px) {
+
+    .navbar {
+        padding: 15px;
+    }
+
+    .match-card {
+        padding: 18px;
+    }
+
+    .match-controls {
+        flex-direction: column;
+    }
+
+    .match-controls button,
+    .match-controls select {
+        width: 100%;
+    }
+
+    .match-grid.list-view .match-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+}

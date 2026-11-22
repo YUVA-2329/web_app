@@ -3,7 +3,10 @@
 // ============================================
 
 
-// Match Information
+// ============================================
+// 1. MATCH INFORMATION
+// ============================================
+
 const matches = {
 
     "01": {
@@ -54,7 +57,7 @@ const matches = {
 
 
 // ============================================
-// 1. REUSABLE TOAST NOTIFICATION
+// 2. TOAST NOTIFICATION
 // ============================================
 
 function showToast(message) {
@@ -64,6 +67,7 @@ function showToast(message) {
     if (!toast) {
 
         toast = document.createElement("div");
+
         toast.id = "toast";
 
         toast.style.cssText = `
@@ -86,6 +90,7 @@ function showToast(message) {
     }
 
     toast.textContent = message;
+
     toast.style.opacity = "1";
 
     clearTimeout(toast.hideTimer);
@@ -100,7 +105,7 @@ function showToast(message) {
 
 
 // ============================================
-// 2. MATCH FILTERING
+// 3. MATCH FILTERING - ACTIVITY 7 & 8
 // ============================================
 
 const teamFilter = document.getElementById("team");
@@ -140,7 +145,7 @@ if (teamFilter && matchTable) {
 
 
 // ============================================
-// 3. BOOK BUTTON - REDIRECT TO BOOKING PAGE
+// 4. BOOK BUTTON
 // ============================================
 
 document.querySelectorAll(".book-btn").forEach(button => {
@@ -148,8 +153,6 @@ document.querySelectorAll(".book-btn").forEach(button => {
     button.addEventListener("click", function () {
 
         const matchId = this.dataset.match;
-
-        console.log("Book button clicked:", matchId);
 
         if (!matches[matchId]) {
 
@@ -174,12 +177,17 @@ document.querySelectorAll(".book-btn").forEach(button => {
 
 
 // ============================================
-// 4. LOAD SELECTED MATCH
+// 5. BOOKING FORM ELEMENTS
 // ============================================
 
 const bookingForm = document.getElementById("bookingForm");
 
 const matchSelect = document.getElementById("match");
+
+
+// ============================================
+// 6. LOAD SELECTED MATCH
+// ============================================
 
 if (bookingForm && matchSelect) {
 
@@ -191,52 +199,38 @@ if (bookingForm && matchSelect) {
 
         matchSelect.value = selectedMatch;
 
-        updateBookingSummary();
-
-        setTimeout(() => {
-
-            bookingForm.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-
-            showToast("Match selected successfully!");
-
-        }, 300);
-
     }
 
 }
 
 
 // ============================================
-// 5. BOOKING SUMMARY - LIVE UPDATE
+// 7. LIVE BOOKING SUMMARY
 // ============================================
 
 function updateBookingSummary(showNotification = false) {
 
     if (!bookingForm) return;
 
+    const matchId =
+        document.getElementById("match")?.value || "";
 
-    // Read selected values using DOM selectors.
+    const stand =
+        document.getElementById("stand")?.value || "";
 
-    const matchId = document.getElementById("match")?.value || "";
-
-    const stand = document.getElementById("stand")?.value || "";
-
-    const quantityInput = document.getElementById("tickets");
-
-    const quantity = Number(quantityInput?.value);
-
-
-    // Get match details.
+    const quantity =
+        Number(document.getElementById("tickets")?.value);
 
     const match = matches[matchId];
 
-    const price = match && stand ? match.prices[stand] : 0;
+    const price =
+        match && stand ? match.prices[stand] : 0;
 
+    const validQuantity =
+        Number.isInteger(quantity) &&
+        quantity >= 1 &&
+        quantity <= 10;
 
-    // Select Booking Summary elements.
 
     const summaryMatch = document.getElementById("summaryMatch");
 
@@ -253,82 +247,59 @@ function updateBookingSummary(showNotification = false) {
     const summaryVenue = document.getElementById("summaryVenue");
 
 
-    // Validate quantity.
-
-    const validQuantity =
-        Number.isInteger(quantity) && quantity >= 1 && quantity <= 10;
-
-
-    // Update selected match.
-
     if (summaryMatch) {
 
-        summaryMatch.textContent = match ? match.name : "Not Selected";
+        summaryMatch.textContent =
+            match ? match.name : "Not Selected";
 
     }
-
-
-    // Update stand.
 
     if (summaryStand) {
 
-        summaryStand.textContent = stand || "Not Selected";
+        summaryStand.textContent =
+            stand || "Not Selected";
 
     }
-
-
-    // Update ticket price.
 
     if (summaryPrice) {
 
-        summaryPrice.textContent = price
-            ? price.toLocaleString("en-IN")
-            : "—";
+        summaryPrice.textContent =
+            price ? price.toLocaleString("en-IN") : "—";
 
     }
-
-
-    // Update quantity.
 
     if (summaryQuantity) {
 
-        summaryQuantity.textContent = validQuantity ? quantity : "—";
+        summaryQuantity.textContent =
+            validQuantity ? quantity : "—";
 
     }
-
-
-    // Calculate total price.
 
     if (summaryTotal) {
 
-        const total = validQuantity ? price * quantity : 0;
+        const total = price * quantity;
 
-        summaryTotal.textContent = price && validQuantity
-            ? total.toLocaleString("en-IN")
-            : "—";
+        summaryTotal.textContent =
+            price && validQuantity
+                ? total.toLocaleString("en-IN")
+                : "—";
 
     }
-
-
-    // Update match date.
 
     if (summaryDate) {
 
-        summaryDate.textContent = match ? match.date : "—";
+        summaryDate.textContent =
+            match ? match.date : "—";
 
     }
-
-
-    // Update venue.
 
     if (summaryVenue) {
 
-        summaryVenue.textContent = match ? match.venue : "—";
+        summaryVenue.textContent =
+            match ? match.venue : "—";
 
     }
 
-
-    // Show toast notification.
 
     if (showNotification) {
 
@@ -348,12 +319,10 @@ function updateBookingSummary(showNotification = false) {
 
 
 // ============================================
-// 6. EVENT LISTENERS FOR LIVE INTERACTION
+// 8. BOOKING EVENT LISTENERS
 // ============================================
 
 if (bookingForm) {
-
-    // Match and Stand dropdown events.
 
     ["match", "stand"].forEach(id => {
 
@@ -361,7 +330,7 @@ if (bookingForm) {
 
         if (field) {
 
-            field.addEventListener("change", () => {
+            field.addEventListener("change", function () {
 
                 updateBookingSummary(true);
 
@@ -372,20 +341,17 @@ if (bookingForm) {
     });
 
 
-    // Ticket quantity event.
-
     const ticketInput = document.getElementById("tickets");
 
     if (ticketInput) {
 
-        ticketInput.addEventListener("input", () => {
+        ticketInput.addEventListener("input", function () {
 
             updateBookingSummary(false);
 
         });
 
-
-        ticketInput.addEventListener("change", () => {
+        ticketInput.addEventListener("change", function () {
 
             updateBookingSummary(true);
 
@@ -394,15 +360,13 @@ if (bookingForm) {
     }
 
 
-    // Initial summary update.
-
     updateBookingSummary(false);
 
 }
 
 
 // ============================================
-// 7. SAVE BOOKING DETAILS
+// 9. GET BOOKINGS FROM LOCAL STORAGE
 // ============================================
 
 function getBookings() {
@@ -424,6 +388,10 @@ function getBookings() {
 }
 
 
+// ============================================
+// 10. SAVE BOOKING
+// ============================================
+
 function saveBooking(booking) {
 
     const bookings = getBookings();
@@ -439,7 +407,7 @@ function saveBooking(booking) {
 
 
 // ============================================
-// 8. FORM SUBMISSION AND VALIDATION
+// 11. BOOKING FORM SUBMISSION
 // ============================================
 
 if (bookingForm) {
@@ -448,7 +416,6 @@ if (bookingForm) {
 
         event.preventDefault();
 
-
         if (!bookingForm.reportValidity()) {
 
             return;
@@ -456,23 +423,26 @@ if (bookingForm) {
         }
 
 
-        const name = document.getElementById("name").value.trim();
+        const name =
+            document.getElementById("name").value.trim();
 
-        const email = document.getElementById("email").value.trim();
+        const email =
+            document.getElementById("email").value.trim();
 
-        const phone = document.getElementById("phone").value.trim();
+        const phone =
+            document.getElementById("phone").value.trim();
 
-        const matchId = document.getElementById("match").value;
+        const matchId =
+            document.getElementById("match").value;
 
-        const stand = document.getElementById("stand").value;
+        const stand =
+            document.getElementById("stand").value;
 
-        const quantity = Number(
-            document.getElementById("tickets").value
-        );
+        const quantity =
+            Number(document.getElementById("tickets").value);
 
 
         const match = matches[matchId];
-
 
         if (!match) {
 
@@ -484,7 +454,6 @@ if (bookingForm) {
 
 
         const price = match.prices[stand];
-
 
         if (
             !price ||
@@ -556,7 +525,6 @@ if (bookingForm) {
 
         showToast("Booking Successful!");
 
-
         alert(
             "Booking Successful!\n\n" +
             "Name: " + name + "\n" +
@@ -576,14 +544,13 @@ if (bookingForm) {
 
 
 // ============================================
-// 9. DISPLAY MY BOOKINGS ON INDEX PAGE
+// 12. DISPLAY MY BOOKINGS
 // ============================================
 
 function displayBookings() {
 
     const bookingsTable =
         document.getElementById("myBookingsTable");
-
 
     if (!bookingsTable) return;
 
@@ -610,7 +577,6 @@ function displayBookings() {
 
         const row = document.createElement("tr");
 
-
         [
 
             booking.match,
@@ -633,7 +599,6 @@ function displayBookings() {
 
         });
 
-
         bookingsTable.appendChild(row);
 
     });
@@ -642,7 +607,93 @@ function displayBookings() {
 
 
 // ============================================
-// 10. INITIALIZE WEBSITE
+// 13. ACTIVITY 8 - HAMBURGER MENU
+// ============================================
+
+const hamburger = document.getElementById("hamburger");
+
+const navLinks = document.getElementById("navLinks");
+
+if (hamburger && navLinks) {
+
+    hamburger.addEventListener("click", function () {
+
+        const isOpen =
+            navLinks.classList.toggle("active");
+
+        hamburger.setAttribute(
+            "aria-expanded",
+            String(isOpen)
+        );
+
+    });
+
+
+    navLinks.querySelectorAll("a").forEach(link => {
+
+        link.addEventListener("click", function () {
+
+            navLinks.classList.remove("active");
+
+            hamburger.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+
+        });
+
+    });
+
+}
+
+
+// ============================================
+// 14. ACTIVITY 8 - GRID AND LIST VIEW
+// ============================================
+
+const matchContainer =
+    document.getElementById("matchContainer");
+
+const gridButton =
+    document.getElementById("gridView");
+
+const listButton =
+    document.getElementById("listView");
+
+
+if (matchContainer && gridButton && listButton) {
+
+    // Default Grid View
+
+    matchContainer.classList.add("grid-view");
+
+
+    gridButton.addEventListener("click", function () {
+
+        matchContainer.classList.add("grid-view");
+
+        matchContainer.classList.remove("list-view");
+
+        showToast("Grid View Enabled");
+
+    });
+
+
+    listButton.addEventListener("click", function () {
+
+        matchContainer.classList.add("list-view");
+
+        matchContainer.classList.remove("grid-view");
+
+        showToast("List View Enabled");
+
+    });
+
+}
+
+
+// ============================================
+// 15. WEBSITE INITIALIZATION
 // ============================================
 
 document.addEventListener("DOMContentLoaded", function () {

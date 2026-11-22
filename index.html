@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,18 +11,43 @@
 
 <body>
 
-    <header>
+    <!-- HEADER -->
+    <header class="main-header" id="home">
         <h1>IPL Ticket Booking 2026</h1>
     </header>
 
-    <nav aria-label="Main navigation">
-        <ul>
+
+    <!-- RESPONSIVE NAVIGATION -->
+    <nav class="navbar" aria-label="Main navigation">
+
+        <div class="nav-logo">
+            IPL 2026
+        </div>
+
+        <button
+            class="hamburger"
+            id="hamburger"
+            type="button"
+            aria-label="Toggle navigation"
+            aria-expanded="false"
+            aria-controls="navLinks">
+
+            ☰
+
+        </button>
+
+        <ul id="navLinks" class="nav-links">
+
+            <li><a href="#home">Home</a></li>
             <li><a href="#matches">Matches</a></li>
             <li><a href="booking.html">Book Ticket</a></li>
             <li><a href="#mybookings">My Bookings</a></li>
             <li><a href="#guidelines">Guidelines</a></li>
+
         </ul>
+
     </nav>
+
 
     <main>
 
@@ -78,6 +104,7 @@
 
             <h2>IPL Match Schedule</h2>
 
+            <!-- TEAM FILTER -->
             <div class="filter">
 
                 <label for="team">Filter By Team:</label>
@@ -96,9 +123,24 @@
             </div>
 
 
-            <div class="table-wrap">
+            <!-- GRID AND LIST VIEW CONTROLS -->
+            <div class="view-controls">
 
-                <table>
+                <button type="button" id="gridView">
+                    Grid View
+                </button>
+
+                <button type="button" id="listView">
+                    List View
+                </button>
+
+            </div>
+
+
+            <!-- MATCH TABLE -->
+            <div class="table-wrap" id="matchContainer">
+
+                <table id="matchSchedule">
 
                     <thead>
 
@@ -253,7 +295,7 @@
 
 
         <!-- STADIUM GUIDELINES -->
-        <section id="guidelines">
+        <section id="guidelines" class="guidelines-section">
 
             <h2>Stadium Guidelines</h2>
 
@@ -313,7 +355,8 @@
 
 
     <!-- JAVASCRIPT -->
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 
 </body>
+
 </html>
