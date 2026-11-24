@@ -42,6 +42,11 @@ function Navbar({ bookingCount = 0 }) {
         <li>
           <a href="#guidelines" onClick={closeMenu}>Guidelines</a>
         </li>
+        <li>
+          <a href="/static/index.html" onClick={closeMenu} style={{ color: '#ffcc00', fontWeight: 'bold' }}>
+            📄 Static HTML/JS
+          </a>
+        </li>
       </ul>
     </nav>
   );

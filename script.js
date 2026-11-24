@@ -186,19 +186,29 @@ const matchSelect = document.getElementById("match");
 
 
 // ============================================
-// 6. LOAD SELECTED MATCH
+// 6. LOAD SELECTED MATCH, STAND & TICKETS
 // ============================================
 
-if (bookingForm && matchSelect) {
+if (bookingForm) {
 
     const urlParams = new URLSearchParams(window.location.search);
 
     const selectedMatch = urlParams.get("match");
+    const selectedStand = urlParams.get("stand");
+    const selectedTickets = urlParams.get("tickets");
 
-    if (selectedMatch && matches[selectedMatch]) {
-
+    if (selectedMatch && matchSelect && matches[selectedMatch]) {
         matchSelect.value = selectedMatch;
+    }
 
+    const standSelect = document.getElementById("stand");
+    if (selectedStand && standSelect) {
+        standSelect.value = selectedStand;
+    }
+
+    const ticketsInput = document.getElementById("tickets");
+    if (selectedTickets && ticketsInput) {
+        ticketsInput.value = selectedTickets;
     }
 
 }
@@ -511,6 +521,30 @@ if (bookingForm) {
         try {
 
             saveBooking(booking);
+
+            // Also persist to live Supabase PostgreSQL database
+            fetch("https://myntjfzjfyzyqnlmwsrd.supabase.co/rest/v1/bookings", {
+                method: "POST",
+                headers: {
+                    "apikey": "sb_publishable_zadsiLQH25QzuMShWBvyww_Kcy3eIhF",
+                    "Authorization": "Bearer sb_publishable_zadsiLQH25QzuMShWBvyww_Kcy3eIhF",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                },
+                body: JSON.stringify({
+                    match_id: matchId,
+                    match_name: match.name,
+                    date: match.date,
+                    venue: match.venue,
+                    stand: stand,
+                    tickets: quantity,
+                    total: total,
+                    user_name: name,
+                    user_email: email,
+                    user_phone: phone,
+                    preference: preference
+                })
+            }).catch(err => console.warn("Supabase background sync notice:", err));
 
         } catch (error) {
 

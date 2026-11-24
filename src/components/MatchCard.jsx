@@ -2,32 +2,42 @@ import React, { useState } from 'react';
 
 function MatchCard({ match, onBook }) {
   const { id, name, date, time, venue, prices } = match;
+  const availableSeats = match.available_seats !== undefined ? match.available_seats : 250;
+  const isSoldOut = availableSeats <= 0;
 
   // Component State for interactive booking selection
   const [selectedStand, setSelectedStand] = useState('General');
   const [ticketCount, setTicketCount] = useState(1);
-  const [isBooked, setIsBooked] = useState(false);
 
-  const currentPrice = prices[selectedStand] || 0;
+  const currentPrice = prices ? prices[selectedStand] || 0 : 0;
   const totalPrice = currentPrice * ticketCount;
 
   const handleBooking = () => {
+    if (isSoldOut) {
+      alert('This match is completely sold out!');
+      return;
+    }
+    if (ticketCount > availableSeats) {
+      alert(`Only ${availableSeats} seat(s) available for this match!`);
+      return;
+    }
+
     if (onBook) {
       onBook({
+        id,
         matchId: id,
+        name,
         matchName: name,
-        date: `${date} ${time || ''}`.trim(),
+        date,
+        time,
         venue,
         stand: selectedStand,
         tickets: ticketCount,
         total: totalPrice,
+        availableSeats,
+        prices,
       });
     }
-
-    setIsBooked(true);
-    setTimeout(() => {
-      setIsBooked(false);
-    }, 2500);
   };
 
   return (
@@ -36,9 +46,23 @@ function MatchCard({ match, onBook }) {
         <span style={{ fontSize: '13px', fontWeight: 'bold', background: '#092c5c', color: 'white', padding: '3px 8px', borderRadius: '4px' }}>
           Match #{id}
         </span>
-        <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>
-          📅 {date} {time && `• ${time}`}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 'bold',
+              background: isSoldOut ? '#ffebee' : availableSeats < 50 ? '#fff3e0' : '#e8f5e9',
+              color: isSoldOut ? '#c62828' : availableSeats < 50 ? '#e65100' : '#2e7d32',
+              padding: '3px 8px',
+              borderRadius: '4px',
+            }}
+          >
+            💺 {isSoldOut ? 'Sold Out' : `${availableSeats} Seats`}
+          </span>
+          <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>
+            📅 {date} {time && `• ${time}`}
+          </span>
+        </div>
       </div>
 
       <h3 style={{ fontSize: '20px', margin: '8px 0 4px', color: '#092c5c' }}>{name}</h3>
@@ -72,10 +96,11 @@ function MatchCard({ match, onBook }) {
           Select Category:
         </label>
         <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-          {Object.entries(prices).map(([stand, price]) => (
+          {prices && Object.entries(prices).map(([stand, price]) => (
             <button
               key={stand}
               type="button"
+              disabled={isSoldOut}
               onClick={() => setSelectedStand(stand)}
               style={{
                 flex: '1',
@@ -84,10 +109,11 @@ function MatchCard({ match, onBook }) {
                 border: selectedStand === stand ? '2px solid #092c5c' : '1px solid #ccc',
                 background: selectedStand === stand ? '#eef4fc' : 'white',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: isSoldOut ? 'not-allowed' : 'pointer',
                 textAlign: 'center',
                 fontWeight: selectedStand === stand ? 'bold' : 'normal',
                 color: selectedStand === stand ? '#092c5c' : '#333',
+                opacity: isSoldOut ? 0.6 : 1,
               }}
             >
               <div>{stand}</div>
@@ -106,6 +132,7 @@ function MatchCard({ match, onBook }) {
           <select
             id={`tickets-${id}`}
             value={ticketCount}
+            disabled={isSoldOut}
             onChange={(e) => setTicketCount(Number(e.target.value))}
             style={{ width: '65px', padding: '6px' }}
           >
@@ -125,18 +152,20 @@ function MatchCard({ match, onBook }) {
         </div>
       </div>
 
-      {/* Action Button */}
+      {/* Action Button - Opens the Booking Form with auto-selected points */}
       <button
         type="button"
         className="book-btn"
+        disabled={isSoldOut}
         onClick={handleBooking}
         style={{
           width: '100%',
-          backgroundColor: isBooked ? '#28a745' : '#092c5c',
+          backgroundColor: isSoldOut ? '#888' : '#092c5c',
+          cursor: isSoldOut ? 'not-allowed' : 'pointer',
           transition: 'background-color 0.3s ease',
         }}
       >
-        {isBooked ? '✓ Booked Successfully!' : `Book Ticket • ₹${totalPrice}`}
+        {isSoldOut ? 'Sold Out' : `Book Ticket • ₹${totalPrice}`}
       </button>
     </article>
   );

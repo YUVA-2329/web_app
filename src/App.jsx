@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar.jsx';
 import Hero from './components/Hero.jsx';
 import MatchCard from './components/MatchCard.jsx';
+import BookingModal from './components/BookingModal.jsx';
+import { supabase, isSupabaseConfigured } from './supabase.js';
 
 const INITIAL_MATCHES = [
   {
@@ -15,7 +17,8 @@ const INITIAL_MATCHES = [
       General: 1200,
       Premium: 2500,
       VIP: 5000
-    }
+    },
+    available_seats: 250
   },
   {
     id: "02",
@@ -28,7 +31,8 @@ const INITIAL_MATCHES = [
       General: 1500,
       Premium: 3000,
       VIP: 6000
-    }
+    },
+    available_seats: 180
   },
   {
     id: "03",
@@ -41,7 +45,8 @@ const INITIAL_MATCHES = [
       General: 1400,
       Premium: 3200,
       VIP: 6500
-    }
+    },
+    available_seats: 300
   },
   {
     id: "04",
@@ -54,38 +59,226 @@ const INITIAL_MATCHES = [
       General: 1800,
       Premium: 3500,
       VIP: 7000
-    }
+    },
+    available_seats: 220
   }
 ];
 
 function App() {
-  const [matches] = useState(INITIAL_MATCHES);
+  const [matches, setMatches] = useState(INITIAL_MATCHES);
   const [selectedTeam, setSelectedTeam] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const [bookings, setBookings] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
+  const [dbStatus, setDbStatus] = useState(isSupabaseConfigured ? 'connecting' : 'local');
+
+  // Booking Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeBookingSelection, setActiveBookingSelection] = useState(null);
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage('');
-    }, 3500);
+    }, 4500);
   };
 
-  const handleBookMatch = (bookingData) => {
-    const newBooking = {
-      id: Date.now(),
-      ...bookingData,
-      bookedAt: new Date().toLocaleTimeString(),
+  // 1. Fetch matches from Supabase using .from('matches').select('*') inside useEffect
+  const fetchMatches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setMatches(data);
+        setDbStatus('connected');
+      }
+    } catch (err) {
+      console.warn('Supabase fetch matches notice:', err.message);
+      setDbStatus('local');
+    }
+  };
+
+  // Fetch bookings from Supabase
+  const fetchBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setBookings(
+          data.map((b) => ({
+            id: b.id,
+            matchId: b.match_id,
+            matchName: b.match_name,
+            date: b.date,
+            venue: b.venue,
+            stand: b.stand,
+            tickets: b.tickets,
+            total: b.total,
+            userName: b.user_name || 'Fan',
+            preference: b.preference || 'Regular',
+            bookedAt: b.booked_at ? new Date(b.booked_at).toLocaleTimeString() : new Date().toLocaleTimeString(),
+          }))
+        );
+      }
+    } catch (err) {
+      console.warn('Supabase fetch bookings notice:', err.message);
+    }
+  };
+
+  // 2. Realtime subscription to auto-update when database changes occur
+  useEffect(() => {
+    fetchMatches();
+    fetchBookings();
+
+    // Subscribe to realtime changes on 'matches' table
+    const matchesChannel = supabase
+      .channel('realtime-matches')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'matches' },
+        (payload) => {
+          console.log('Realtime match change detected:', payload);
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            setMatches((prev) =>
+              prev.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } : m))
+            );
+          } else {
+            fetchMatches();
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to realtime changes on 'bookings' table
+    const bookingsChannel = supabase
+      .channel('realtime-bookings')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bookings' },
+        (payload) => {
+          console.log('Realtime booking detected:', payload);
+          const b = payload.new;
+          const formatted = {
+            id: b.id,
+            matchId: b.match_id,
+            matchName: b.match_name,
+            date: b.date,
+            venue: b.venue,
+            stand: b.stand,
+            tickets: b.tickets,
+            total: b.total,
+            userName: b.user_name || 'Fan',
+            preference: b.preference || 'Regular',
+            bookedAt: b.booked_at ? new Date(b.booked_at).toLocaleTimeString() : new Date().toLocaleTimeString(),
+          };
+          setBookings((prev) => {
+            if (prev.some((item) => item.id === formatted.id)) return prev;
+            return [formatted, ...prev];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(matchesChannel);
+      supabase.removeChannel(bookingsChannel);
     };
-    setBookings((prev) => [newBooking, ...prev]);
-    triggerToast(`🎉 Booked ${bookingData.tickets} ticket(s) for ${bookingData.matchName}!`);
+  }, []);
+
+  // 3. Open Booking Form with Auto-Selected Points
+  const handleOpenBooking = (cardSelection) => {
+    setActiveBookingSelection(cardSelection);
+    setIsModalOpen(true);
+  };
+
+  // 4. Implement booking by inserting into bookings and updating available_seats using .insert() and .update().eq()
+  const handleConfirmBooking = async (fullBookingDetails) => {
+    const {
+      matchId,
+      matchName,
+      date,
+      venue,
+      stand,
+      tickets,
+      total,
+      availableSeats,
+      userName,
+      userEmail,
+      userPhone,
+      preference,
+    } = fullBookingDetails;
+
+    const newAvailableSeats = Math.max(0, availableSeats - tickets);
+
+    try {
+      // Step A: Insert into bookings table in PostgreSQL
+      const { data: insertedData, error: insertError } = await supabase
+        .from('bookings')
+        .insert([
+          {
+            match_id: matchId,
+            match_name: matchName,
+            date,
+            venue,
+            stand,
+            tickets,
+            total,
+            user_name: userName,
+            user_email: userEmail,
+            user_phone: userPhone,
+            preference,
+          },
+        ])
+        .select();
+
+      if (insertError) throw insertError;
+
+      // Step B: Update available_seats in matches table in PostgreSQL
+      const { error: updateError } = await supabase
+        .from('matches')
+        .update({ available_seats: newAvailableSeats })
+        .eq('id', matchId);
+
+      if (updateError) throw updateError;
+
+      // Optimistic state updates
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, available_seats: newAvailableSeats } : m))
+      );
+
+      triggerToast(`🎉 Database Updated! Booked for ${userName} (${matchName})!`);
+    } catch (err) {
+      console.warn('Supabase booking query notice (local fallback active):', err.message);
+
+      // Local state fallback if keys/tables pending
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, available_seats: newAvailableSeats } : m))
+      );
+      const localBooking = {
+        id: Date.now(),
+        ...fullBookingDetails,
+        bookedAt: new Date().toLocaleTimeString(),
+      };
+      setBookings((prev) => [localBooking, ...prev]);
+
+      triggerToast(`🎉 Booked ${tickets} ticket(s) for ${matchName}!`);
+    }
   };
 
   // Filter matches based on team selection
   const filteredMatches = matches.filter((match) => {
     if (selectedTeam === 'all') return true;
-    return match.teams.includes(selectedTeam);
+    return match.teams && match.teams.includes(selectedTeam);
   });
 
   return (
@@ -103,7 +296,7 @@ function App() {
             padding: '14px 24px',
             borderRadius: '8px',
             boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-            zIndex: 9999,
+            zIndex: 10001,
             fontWeight: 'bold',
             borderLeft: '5px solid #ffcc00',
             animation: 'fadeIn 0.3s ease',
@@ -114,8 +307,27 @@ function App() {
       )}
 
       {/* Main Header */}
-      <header className="main-header">
+      <header className="main-header" style={{ position: 'relative' }}>
         <h1>IPL Ticket Booking 2026</h1>
+        <div style={{ marginTop: '6px' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              padding: '4px 12px',
+              borderRadius: '20px',
+              background: dbStatus === 'connected' ? '#2e7d32' : '#f57c00',
+              color: 'white',
+              fontWeight: 'bold',
+            }}
+          >
+            {dbStatus === 'connected'
+              ? '🟢 Supabase PostgreSQL Connected (Live Realtime)'
+              : '⚡ Supabase Mode (Ready for Live DB Credentials)'}
+          </span>
+        </div>
       </header>
 
       {/* Reusable Navbar Component */}
@@ -135,7 +347,8 @@ function App() {
           <h2>About IPL 2026</h2>
           <p>
             IPL 2026 is an exciting cricket tournament featuring popular teams competing against
-            each other. Experience thrilling matches and enjoy the stadium atmosphere live!
+            each other. Experience thrilling matches with live PostgreSQL database inventory and
+            realtime seat updates!
           </p>
         </section>
 
@@ -211,7 +424,7 @@ function App() {
           <div className={`match-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
             {filteredMatches.length > 0 ? (
               filteredMatches.map((match) => (
-                <MatchCard key={match.id} match={match} onBook={handleBookMatch} />
+                <MatchCard key={match.id} match={match} onBook={handleOpenBooking} />
               ))
             ) : (
               <p style={{ gridColumn: '1/-1', textAlign: 'center', padding: '30px' }}>
@@ -221,7 +434,7 @@ function App() {
           </div>
         </section>
 
-        {/* My Bookings Section (Rebuilt parts of Booking UI with JSX & State) */}
+        {/* My Bookings Section */}
         <section className="mybookings" id="mybookings">
           <h2>My Ticket Bookings</h2>
 
@@ -229,7 +442,7 @@ function App() {
             <div style={{ textAlign: 'center', padding: '30px 20px', color: '#666' }}>
               <p style={{ fontSize: '18px' }}>No bookings yet.</p>
               <p style={{ fontSize: '14px', marginTop: '6px' }}>
-                Select a match above and click <strong>Book Ticket</strong> to create your first booking!
+                Click <strong>Book Ticket</strong> on any match above to fill your details and save your booking to the database!
               </p>
             </div>
           ) : (
@@ -237,6 +450,7 @@ function App() {
               <table>
                 <thead>
                   <tr>
+                    <th>Customer</th>
                     <th>Match</th>
                     <th>Date &amp; Time</th>
                     <th>📍 Location / Stadium</th>
@@ -249,6 +463,11 @@ function App() {
                 <tbody>
                   {bookings.map((b) => (
                     <tr key={b.id}>
+                      <td>
+                        <strong>{b.userName || 'Fan'}</strong>
+                        <br />
+                        <small style={{ color: '#777' }}>{b.preference || 'Regular'}</small>
+                      </td>
                       <td>
                         <strong>{b.matchName}</strong>
                       </td>
@@ -295,6 +514,15 @@ function App() {
           </div>
         </section>
       </main>
+
+      {/* Booking Form Modal with Auto-selected Points & Constraints */}
+      <BookingModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        selectedMatch={activeBookingSelection}
+        allMatches={matches}
+        onConfirmBooking={handleConfirmBooking}
+      />
 
       {/* Footer */}
       <footer>
