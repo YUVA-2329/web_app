@@ -3,43 +3,37 @@ import React, { useState, useEffect } from 'react';
 function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfirmBooking }) {
   if (!isOpen || !selectedMatch) return null;
 
-  // Form State
-  const [matchId, setMatchId] = useState(selectedMatch.id || '01');
-  const [stand, setStand] = useState(selectedMatch.stand || 'General');
+  const [matchId, setMatchId] = useState(selectedMatch.id || 1);
+  const [userName, setUserName] = useState('');
   const [tickets, setTickets] = useState(selectedMatch.tickets || 1);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [preference, setPreference] = useState('Regular');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sync state when selectedMatch prop changes
   useEffect(() => {
     if (selectedMatch) {
-      setMatchId(selectedMatch.id || '01');
-      setStand(selectedMatch.stand || 'General');
+      setMatchId(selectedMatch.id || 1);
       setTickets(selectedMatch.tickets || 1);
     }
   }, [selectedMatch]);
 
-  // Find currently active match details
   const activeMatch =
-    allMatches.find((m) => m.id === matchId) || selectedMatch;
+    allMatches.find((m) => Number(m.id) === Number(matchId)) || selectedMatch;
 
-  const pricePerTicket =
-    activeMatch && activeMatch.prices ? activeMatch.prices[stand] || 0 : 0;
+  const matchTitle =
+    activeMatch.match_title ||
+    activeMatch.name ||
+    `${activeMatch.team1} vs ${activeMatch.team2}`;
+
+  const pricePerTicket = Number(activeMatch.price) || 1500;
   const totalPrice = pricePerTicket * Number(tickets);
   const availableSeats =
-    activeMatch && activeMatch.available_seats !== undefined
-      ? activeMatch.available_seats
-      : 250;
+    activeMatch.available_seats !== undefined ? activeMatch.available_seats : 200;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!agreeTerms) {
-      alert('Please agree to the booking terms and conditions.');
+      alert('Please agree to the booking terms.');
       return;
     }
 
@@ -53,22 +47,18 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
     try {
       await onConfirmBooking({
         matchId: activeMatch.id,
-        matchName: activeMatch.name,
-        date: `${activeMatch.date} ${activeMatch.time || ''}`.trim(),
-        venue: activeMatch.venue,
-        stand,
+        matchTitle,
+        userName: userName.trim(),
         tickets: Number(tickets),
-        total: totalPrice,
+        totalPrice: Number(totalPrice),
         availableSeats,
-        userName: name.trim(),
-        userEmail: email.trim(),
-        userPhone: phone.trim(),
-        preference,
+        date: activeMatch.date,
+        venue: activeMatch.venue,
       });
 
       onClose();
     } catch (err) {
-      console.error('Error in booking modal:', err);
+      console.error('Error submitting booking:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -96,7 +86,7 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
         style={{
           background: '#f4f6f9',
           borderRadius: '12px',
-          maxWidth: '960px',
+          maxWidth: '900px',
           width: '100%',
           maxHeight: '92vh',
           overflowY: 'auto',
@@ -105,7 +95,7 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
+        {/* Header */}
         <div
           style={{
             background: '#092c5c',
@@ -119,7 +109,7 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
           }}
         >
           <h2 style={{ margin: 0, color: 'white', fontSize: '20px' }}>
-            🎟️ IPL 2026 Ticket Booking Form
+            🎟️ IPL Ticket Booking Form
           </h2>
           <button
             type="button"
@@ -137,161 +127,83 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
           </button>
         </div>
 
-        {/* Modal Body - Booking Container mirroring booking.html */}
+        {/* Form Body matching Supabase schema */}
         <div
           className="booking-container"
           style={{ margin: 0, padding: '20px', gap: '20px' }}
         >
-          {/* Left Side: Ticket Booking Form */}
+          {/* Left Side: Inputs */}
           <section className="booking-form" style={{ margin: 0 }}>
             <h3 style={{ color: '#092c5c', marginBottom: '15px' }}>
-              Enter Personal &amp; Booking Details
+              Enter Booking Details
             </h3>
 
             <form onSubmit={handleSubmit}>
-              {/* Full Name with Constraints */}
+              {/* user_name */}
               <div className="form-group">
-                <label htmlFor="modal-name">Full Name (3 to 50 letters):</label>
+                <label htmlFor="modal-username">Your Name (user_name):</label>
                 <input
                   type="text"
-                  id="modal-name"
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  minLength={3}
+                  id="modal-username"
+                  placeholder="Enter your name (e.g. testname)"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  minLength={2}
                   maxLength={50}
-                  pattern="[A-Za-z ]{3,50}"
-                  title="Enter a name containing 3 to 50 letters."
                   required
                 />
               </div>
 
-              {/* Email Address with Constraints */}
+              {/* match selection */}
               <div className="form-group">
-                <label htmlFor="modal-email">Email Address:</label>
-                <input
-                  type="email"
-                  id="modal-email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  maxLength={100}
-                  required
-                />
-              </div>
-
-              {/* Phone Number with Constraints */}
-              <div className="form-group">
-                <label htmlFor="modal-phone">Phone Number (10 digits):</label>
-                <input
-                  type="tel"
-                  id="modal-phone"
-                  placeholder="Enter 10-digit phone number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  pattern="[0-9]{10}"
-                  minLength={10}
-                  maxLength={10}
-                  title="Enter exactly 10 digits."
-                  required
-                />
-              </div>
-
-              {/* Auto-selected Match Dropdown */}
-              <div className="form-group">
-                <label htmlFor="modal-match">Selected Match:</label>
+                <label htmlFor="modal-match-select">Select Match (match_id):</label>
                 <select
-                  id="modal-match"
+                  id="modal-match-select"
                   value={matchId}
-                  onChange={(e) => setMatchId(e.target.value)}
+                  onChange={(e) => setMatchId(Number(e.target.value))}
                   required
                 >
                   {allMatches.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} - {m.venue}
+                      #{m.id} - {m.team1} vs {m.team2} ({m.venue})
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Auto-selected Stand Category */}
+              {/* tickets */}
               <div className="form-group">
-                <label htmlFor="modal-stand">Stand Category:</label>
-                <select
-                  id="modal-stand"
-                  value={stand}
-                  onChange={(e) => setStand(e.target.value)}
-                  required
-                >
-                  <option value="General">General (₹{activeMatch.prices ? activeMatch.prices.General : 1200})</option>
-                  <option value="Premium">Premium (₹{activeMatch.prices ? activeMatch.prices.Premium : 2500})</option>
-                  <option value="VIP">VIP (₹{activeMatch.prices ? activeMatch.prices.VIP : 5000})</option>
-                </select>
-              </div>
-
-              {/* Auto-selected Tickets Quantity */}
-              <div className="form-group">
-                <label htmlFor="modal-tickets">
+                <label htmlFor="modal-tickets-count">
                   Number of Tickets (1 to 10, Max {availableSeats} left):
                 </label>
                 <input
                   type="number"
-                  id="modal-tickets"
+                  id="modal-tickets-count"
                   min="1"
                   max={Math.min(10, availableSeats)}
                   step="1"
                   value={tickets}
-                  onChange={(e) => setTickets(e.target.value)}
+                  onChange={(e) => setTickets(Number(e.target.value))}
                   required
                 />
               </div>
 
-              {/* Booking Preference Radios */}
-              <div className="form-group">
-                <label>Booking Preference:</label>
-                <div style={{ display: 'flex', gap: '20px', marginTop: '6px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'normal', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="modal-preference"
-                      value="Regular"
-                      checked={preference === 'Regular'}
-                      onChange={() => setPreference('Regular')}
-                      style={{ width: 'auto' }}
-                      required
-                    />
-                    Regular Booking
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'normal', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="modal-preference"
-                      value="Priority"
-                      checked={preference === 'Priority'}
-                      onChange={() => setPreference('Priority')}
-                      style={{ width: 'auto' }}
-                    />
-                    Priority Booking
-                  </label>
-                </div>
-              </div>
-
-              {/* Terms and Conditions Checkbox */}
+              {/* Terms Checkbox */}
               <div className="form-group" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                 <input
                   type="checkbox"
-                  id="modal-terms"
+                  id="modal-agree"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
                   style={{ width: 'auto', marginTop: '4px' }}
                   required
                 />
-                <label htmlFor="modal-terms" style={{ fontWeight: 'normal', cursor: 'pointer' }}>
-                  I agree to the IPL stadium guidelines and ticket booking terms.
+                <label htmlFor="modal-agree" style={{ fontWeight: 'normal', cursor: 'pointer' }}>
+                  I agree to stadium entry guidelines and ticket policy.
                 </label>
               </div>
 
-              {/* Buttons */}
+              {/* Submit Buttons */}
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                 <button
                   type="submit"
@@ -303,7 +215,7 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
                     cursor: availableSeats <= 0 ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {isSubmitting ? 'Saving to Database...' : `Confirm Booking • ₹${totalPrice}`}
+                  {isSubmitting ? 'Saving to Supabase...' : `Confirm Booking • ₹${totalPrice.toLocaleString('en-IN')}`}
                 </button>
                 <button
                   type="button"
@@ -324,43 +236,44 @@ function BookingModal({ isOpen, onClose, selectedMatch, allMatches = [], onConfi
             </form>
           </section>
 
-          {/* Right Side: Live Booking Summary */}
+          {/* Right Side: Live Summary matching Screenshot Columns */}
           <aside className="summary" style={{ margin: 0 }}>
             <h3 style={{ color: '#092c5c', borderBottom: '2px solid #ffcc00', paddingBottom: '8px' }}>
               Live Booking Summary
             </h3>
 
             <p>
-              Selected Match: <strong style={{ color: '#092c5c' }}>{activeMatch.name}</strong>
+              Match Title (match_title):<br />
+              <strong style={{ color: '#092c5c', fontSize: '16px' }}>{matchTitle}</strong>
             </p>
             <p>
-              Match Date: <strong>{activeMatch.date} ({activeMatch.time || '7:30 PM'})</strong>
+              Match ID (match_id): <strong>#{activeMatch.id}</strong>
+            </p>
+            <p>
+              Match Date: <strong>{activeMatch.date}</strong>
             </p>
             <p>
               📍 Location / Venue: <strong>{activeMatch.venue}</strong>
             </p>
             <p>
-              Stand Category: <strong style={{ color: '#e63946' }}>{stand}</strong>
-            </p>
-            <p>
               Price per Ticket: <strong>₹{pricePerTicket}</strong>
             </p>
             <p>
-              Ticket Quantity: <strong>{tickets}</strong>
+              Tickets (tickets): <strong>{tickets}</strong>
             </p>
             <p>
               Available Seats: <strong style={{ color: availableSeats < 50 ? '#c62828' : '#2e7d32' }}>{availableSeats} seats</strong>
             </p>
 
             <div style={{ marginTop: '20px', padding: '12px', background: '#eef4fc', borderRadius: '8px' }}>
-              <div style={{ fontSize: '14px', color: '#666' }}>Total Amount to Pay:</div>
+              <div style={{ fontSize: '13px', color: '#666' }}>Total Price (total_price):</div>
               <div className="total" style={{ fontSize: '24px', color: '#092c5c' }}>
                 ₹{totalPrice.toLocaleString('en-IN')}
               </div>
             </div>
 
-            <div style={{ marginTop: '15px', fontSize: '13px', color: '#666' }}>
-              Database: <span style={{ color: '#2e7d32', fontWeight: 'bold' }}>PostgreSQL (Supabase)</span>
+            <div style={{ marginTop: '12px', fontSize: '12px', color: '#2e7d32', fontWeight: 'bold' }}>
+              ✓ Saved to table: public.bookings
             </div>
           </aside>
         </div>

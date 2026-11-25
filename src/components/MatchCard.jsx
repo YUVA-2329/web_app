@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 
 function MatchCard({ match, onBook }) {
-  const { id, name, date, time, venue, prices } = match;
-  const availableSeats = match.available_seats !== undefined ? match.available_seats : 250;
+  const { id, team1, team2, date, venue, price } = match;
+  const matchTitle = match.name || `${team1} vs ${team2}`;
+  const availableSeats = match.available_seats !== undefined ? match.available_seats : 200;
   const isSoldOut = availableSeats <= 0;
 
-  // Component State for interactive booking selection
-  const [selectedStand, setSelectedStand] = useState('General');
   const [ticketCount, setTicketCount] = useState(1);
-
-  const currentPrice = prices ? prices[selectedStand] || 0 : 0;
-  const totalPrice = currentPrice * ticketCount;
+  const totalPrice = Number(price) * Number(ticketCount);
 
   const handleBooking = () => {
     if (isSoldOut) {
-      alert('This match is completely sold out!');
+      alert('This match is sold out!');
       return;
     }
     if (ticketCount > availableSeats) {
@@ -26,16 +23,16 @@ function MatchCard({ match, onBook }) {
       onBook({
         id,
         matchId: id,
-        name,
-        matchName: name,
+        team1,
+        team2,
+        name: matchTitle,
+        matchTitle,
         date,
-        time,
         venue,
-        stand: selectedStand,
+        price,
         tickets: ticketCount,
-        total: totalPrice,
+        totalPrice,
         availableSeats,
-        prices,
       });
     }
   };
@@ -60,12 +57,14 @@ function MatchCard({ match, onBook }) {
             💺 {isSoldOut ? 'Sold Out' : `${availableSeats} Seats`}
           </span>
           <span style={{ fontSize: '13px', color: '#666', fontWeight: 'bold' }}>
-            📅 {date} {time && `• ${time}`}
+            📅 {date}
           </span>
         </div>
       </div>
 
-      <h3 style={{ fontSize: '20px', margin: '8px 0 4px', color: '#092c5c' }}>{name}</h3>
+      <h3 style={{ fontSize: '22px', margin: '8px 0 4px', color: '#092c5c' }}>
+        {matchTitle}
+      </h3>
 
       {/* Prominent Match Location & Venue */}
       <div
@@ -86,45 +85,30 @@ function MatchCard({ match, onBook }) {
       >
         <span>📍</span>
         <span>
-          <strong>Location:</strong> {venue}
+          <strong>Location / Venue:</strong> {venue}
         </span>
       </div>
 
-      {/* Stand Selection */}
-      <div style={{ margin: '15px 0' }}>
-        <label htmlFor={`stand-${id}`} style={{ fontSize: '14px', marginBottom: '6px' }}>
-          Select Category:
-        </label>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-          {prices && Object.entries(prices).map(([stand, price]) => (
-            <button
-              key={stand}
-              type="button"
-              disabled={isSoldOut}
-              onClick={() => setSelectedStand(stand)}
-              style={{
-                flex: '1',
-                minWidth: '80px',
-                padding: '8px 6px',
-                border: selectedStand === stand ? '2px solid #092c5c' : '1px solid #ccc',
-                background: selectedStand === stand ? '#eef4fc' : 'white',
-                borderRadius: '6px',
-                cursor: isSoldOut ? 'not-allowed' : 'pointer',
-                textAlign: 'center',
-                fontWeight: selectedStand === stand ? 'bold' : 'normal',
-                color: selectedStand === stand ? '#092c5c' : '#333',
-                opacity: isSoldOut ? 0.6 : 1,
-              }}
-            >
-              <div>{stand}</div>
-              <div style={{ fontSize: '13px', color: '#e63946', fontWeight: 'bold' }}>₹{price}</div>
-            </button>
-          ))}
+      {/* Price & Quantity Details */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: '#f8f9fa',
+          padding: '12px',
+          borderRadius: '8px',
+          margin: '12px 0',
+          border: '1px solid #eee',
+        }}
+      >
+        <div>
+          <span style={{ fontSize: '13px', color: '#666' }}>Price per Ticket: </span>
+          <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#e63946' }}>
+            ₹{price}
+          </span>
         </div>
-      </div>
 
-      {/* Ticket quantity & Total */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '15px 0', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <label htmlFor={`tickets-${id}`} style={{ fontSize: '14px', margin: 0 }}>
             Qty:
@@ -143,16 +127,16 @@ function MatchCard({ match, onBook }) {
             ))}
           </select>
         </div>
-
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '13px', color: '#777' }}>Total: </span>
-          <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#092c5c' }}>
-            ₹{totalPrice}
-          </span>
-        </div>
       </div>
 
-      {/* Action Button - Opens the Booking Form with auto-selected points */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0 16px' }}>
+        <span style={{ fontSize: '14px', color: '#666' }}>Total Amount:</span>
+        <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#092c5c' }}>
+          ₹{totalPrice.toLocaleString('en-IN')}
+        </span>
+      </div>
+
+      {/* Action Button */}
       <button
         type="button"
         className="book-btn"
@@ -162,10 +146,12 @@ function MatchCard({ match, onBook }) {
           width: '100%',
           backgroundColor: isSoldOut ? '#888' : '#092c5c',
           cursor: isSoldOut ? 'not-allowed' : 'pointer',
+          padding: '12px',
+          fontSize: '15px',
           transition: 'background-color 0.3s ease',
         }}
       >
-        {isSoldOut ? 'Sold Out' : `Book Ticket • ₹${totalPrice}`}
+        {isSoldOut ? 'Sold Out' : `Book Ticket • ₹${totalPrice.toLocaleString('en-IN')}`}
       </button>
     </article>
   );
